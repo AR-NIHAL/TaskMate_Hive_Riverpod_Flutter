@@ -1,3 +1,6 @@
+import 'package:hive/hive.dart';
+import '../model/task.dart';
+
 import 'package:flutter/material.dart';
 import 'package:taskmate_app/core/storage/settings_store.dart';
 
@@ -12,6 +15,23 @@ class TaskHomePage extends StatefulWidget {
 
 class _TaskHomePageState extends State<TaskHomePage> {
   TaskFilter _selectedFilter = TaskFilter.today;
+
+  // ✅ HELPER: task box getter
+  Box<Task> get _taskBox => Hive.box<Task>('tasks_box');
+
+  // ✅ HELPER: add dummy task
+  Future<void> _addDummyTask() async {
+    final id = DateTime.now().millisecondsSinceEpoch.toString();
+
+    final task = Task(
+      id: id,
+      title: 'Dummy Task $id',
+      createdAt: DateTime.now(),
+    );
+
+    await _taskBox.put(task.id, task);
+    setState(() {}); // refresh UI
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,21 +61,40 @@ class _TaskHomePageState extends State<TaskHomePage> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('New Task (coming soon)')),
-          );
-        },
+        // 🔥 এখন dummy task add করবে
+        onPressed: _addDummyTask,
         child: const Icon(Icons.add),
       ),
-      body: SettingsStore.isFirstOpen
-          ? _FirstOpenState(
-              onContinue: () async {
-                await SettingsStore.setFirstOpenFalse();
-                if (context.mounted) setState(() {});
-              },
-            )
-          : _EmptyState(filter: _selectedFilter),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Card(
+              child: ListTile(
+                title: const Text('Hive tasks saved'),
+                subtitle: Text('Count: ${_taskBox.length}'),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete_forever),
+                  onPressed: () async {
+                    await _taskBox.clear();
+                    setState(() {});
+                  },
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: SettingsStore.isFirstOpen
+                ? _FirstOpenState(
+                    onContinue: () async {
+                      await SettingsStore.setFirstOpenFalse();
+                      if (context.mounted) setState(() {});
+                    },
+                  )
+                : _EmptyState(filter: _selectedFilter),
+          ),
+        ],
+      ),
     );
   }
 }
