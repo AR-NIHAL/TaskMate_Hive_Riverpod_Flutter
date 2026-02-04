@@ -4,6 +4,13 @@ import '../model/task.dart';
 import 'package:flutter/material.dart';
 import 'package:taskmate_app/core/storage/settings_store.dart';
 
+import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+
+import '../../../core/storage/settings_store.dart';
+import '../data/task_repository.dart';
+import '../model/task.dart';
+
 enum TaskFilter { today, upcoming, completed, all }
 
 class TaskHomePage extends StatefulWidget {
@@ -15,6 +22,14 @@ class TaskHomePage extends StatefulWidget {
 
 class _TaskHomePageState extends State<TaskHomePage> {
   TaskFilter _selectedFilter = TaskFilter.today;
+
+  late final TaskRepository _repo;
+
+  @override
+  void initState() {
+    super.initState();
+    _repo = TaskRepository(Hive.box<Task>('tasks_box'));
+  }
 
   // ✅ HELPER: task box getter
   Box<Task> get _taskBox => Hive.box<Task>('tasks_box');
@@ -72,11 +87,12 @@ class _TaskHomePageState extends State<TaskHomePage> {
             child: Card(
               child: ListTile(
                 title: const Text('Hive tasks saved'),
-                subtitle: Text('Count: ${_taskBox.length}'),
+                subtitle: Text('Count: ${_repo.count()}'),
+
                 trailing: IconButton(
                   icon: const Icon(Icons.delete_forever),
                   onPressed: () async {
-                    await _taskBox.clear();
+                    await _repo.clear();
                     setState(() {});
                   },
                 ),
