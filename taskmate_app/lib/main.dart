@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/storage/settings_store.dart';
 import 'features/tasks/model/task.dart';
@@ -17,7 +18,7 @@ Future<void> main() async {
   Hive.registerAdapter(TaskAdapter());
   await Hive.openBox<Task>('tasks_box');
 
-  runApp(const TaskMateApp());
+  runApp(const ProviderScope(child: TaskMateApp()));
 }
 
 class TaskMateApp extends StatelessWidget {

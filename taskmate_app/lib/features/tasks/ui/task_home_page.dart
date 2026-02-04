@@ -1,64 +1,33 @@
-import 'package:hive/hive.dart';
-import '../model/task.dart';
-
 import 'package:flutter/material.dart';
-import 'package:taskmate_app/core/storage/settings_store.dart';
-
-import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/storage/settings_store.dart';
-import '../data/task_repository.dart';
-import '../model/task.dart';
+import '../state/task_providers.dart';
 
 enum TaskFilter { today, upcoming, completed, all }
 
-class TaskHomePage extends StatefulWidget {
+class TaskHomePage extends ConsumerStatefulWidget {
   const TaskHomePage({super.key});
 
   @override
-  State<TaskHomePage> createState() => _TaskHomePageState();
+  ConsumerState<TaskHomePage> createState() => _TaskHomePageState();
 }
 
-class _TaskHomePageState extends State<TaskHomePage> {
+class _TaskHomePageState extends ConsumerState<TaskHomePage> {
   TaskFilter _selectedFilter = TaskFilter.today;
-
-  late final TaskRepository _repo;
-
-  @override
-  void initState() {
-    super.initState();
-    _repo = TaskRepository(Hive.box<Task>('tasks_box'));
-  }
-
-  // ✅ HELPER: task box getter
-  Box<Task> get _taskBox => Hive.box<Task>('tasks_box');
-
-  // ✅ HELPER: add dummy task
-  Future<void> _addDummyTask() async {
-    final id = DateTime.now().millisecondsSinceEpoch.toString();
-
-    final task = Task(
-      id: id,
-      title: 'Dummy Task $id',
-      createdAt: DateTime.now(),
-    );
-
-    await _taskBox.put(task.id, task);
-    setState(() {}); // refresh UI
-  }
 
   @override
   Widget build(BuildContext context) {
+    final tasks = ref.watch(taskListProvider);
+    final count = ref.watch(taskCountProvider);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('TaskMate'),
+        title: Text('TaskMate • ${_label(_selectedFilter)}'),
         actions: [
           PopupMenuButton<TaskFilter>(
             initialValue: _selectedFilter,
-            onSelected: (value) {
-              setState(() => _selectedFilter = value);
-            },
+            onSelected: (value) => setState(() => _selectedFilter = value),
             itemBuilder: (context) => const [
               PopupMenuItem(value: TaskFilter.today, child: Text('Today')),
               PopupMenuItem(
@@ -76,8 +45,7 @@ class _TaskHomePageState extends State<TaskHomePage> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        // 🔥 এখন dummy task add করবে
-        onPressed: _addDummyTask,
+        onPressed: () => ref.read(taskListProvider.notifier).addDummy(),
         child: const Icon(Icons.add),
       ),
       body: Column(
@@ -86,15 +54,12 @@ class _TaskHomePageState extends State<TaskHomePage> {
             padding: const EdgeInsets.all(16),
             child: Card(
               child: ListTile(
-                title: const Text('Hive tasks saved'),
-                subtitle: Text('Count: ${_repo.count()}'),
-
+                title: const Text('Riverpod + Hive'),
+                subtitle: Text('Tasks: $count'),
                 trailing: IconButton(
                   icon: const Icon(Icons.delete_forever),
-                  onPressed: () async {
-                    await _repo.clear();
-                    setState(() {});
-                  },
+                  onPressed: () =>
+                      ref.read(taskListProvider.notifier).clearAll(),
                 ),
               ),
             ),
@@ -104,20 +69,49 @@ class _TaskHomePageState extends State<TaskHomePage> {
                 ? _FirstOpenState(
                     onContinue: () async {
                       await SettingsStore.setFirstOpenFalse();
-                      if (context.mounted) setState(() {});
+                      if (mounted) setState(() {});
                     },
                   )
-                : _EmptyState(filter: _selectedFilter),
+                : tasks.isEmpty
+                ? _EmptyState(filter: _selectedFilter)
+                : ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: tasks.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, i) {
+                      final t = tasks[i];
+                      return Card(
+                        child: ListTile(
+                          title: Text(t.title),
+                          subtitle: Text(t.createdAt.toString()),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
     );
   }
+
+  String _label(TaskFilter f) {
+    switch (f) {
+      case TaskFilter.today:
+        return 'Today';
+      case TaskFilter.upcoming:
+        return 'Upcoming';
+      case TaskFilter.completed:
+        return 'Completed';
+      case TaskFilter.all:
+        return 'All';
+    }
+  }
 }
+
+/* ---------------- EMPTY STATE ---------------- */
 
 class _EmptyState extends StatelessWidget {
   final TaskFilter filter;
-
   const _EmptyState({required this.filter});
 
   String get title {
@@ -176,6 +170,8 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
+/* ---------------- FIRST OPEN STATE ---------------- */
+
 class _FirstOpenState extends StatelessWidget {
   final Future<void> Function() onContinue;
 
@@ -200,7 +196,8 @@ class _FirstOpenState extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'This message shows only the first time.\nTap Continue to get started.',
+              'This message shows only the first time.\n'
+              'Tap continue to start using the app.',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium,
             ),
