@@ -21,7 +21,7 @@ class TaskMateApp extends StatelessWidget {
       darkTheme: ThemeData(
         brightness: Brightness.dark,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.indigo,
+          seedColor: Colors.amber,
           brightness: Brightness.dark,
         ),
         useMaterial3: true,
