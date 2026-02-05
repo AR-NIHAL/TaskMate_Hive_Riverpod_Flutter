@@ -1,44 +1,30 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import 'core/storage/settings_store.dart';
-import 'features/tasks/model/task.dart';
+import 'core/storage/hive_bootstrap.dart';
 import 'features/tasks/ui/task_home_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await Hive.initFlutter();
-
-  // Settings (simple key-value)
-  await Hive.openBox('settings_box');
-
-  // Task object support
-  Hive.registerAdapter(TaskAdapter());
-  await Hive.openBox<Task>('tasks_box');
-
+  await HiveBootstrap.init();
   runApp(const ProviderScope(child: TaskMateApp()));
 }
 
 class TaskMateApp extends StatelessWidget {
   const TaskMateApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorScheme.fromSeed(seedColor: Colors.indigo);
-
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'TaskMate',
-      theme: ThemeData(useMaterial3: true, colorScheme: colorScheme),
+      theme: ThemeData(colorScheme: colorScheme, useMaterial3: true),
       darkTheme: ThemeData(
-        useMaterial3: true,
         brightness: Brightness.dark,
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.indigo,
           brightness: Brightness.dark,
         ),
+        useMaterial3: true,
       ),
       themeMode: ThemeMode.system,
       home: const TaskHomePage(),

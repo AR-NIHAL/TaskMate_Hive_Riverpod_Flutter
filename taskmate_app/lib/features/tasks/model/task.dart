@@ -3,7 +3,7 @@ import 'package:hive/hive.dart';
 part 'task.g.dart';
 
 @HiveType(typeId: 1)
-class Task {
+class Task extends HiveObject {
   @HiveField(0)
   final String id;
 
@@ -11,29 +11,39 @@ class Task {
   final String title;
 
   @HiveField(2)
-  final DateTime createdAt;
+  final String? note;
 
   @HiveField(3)
-  final bool isCompleted;
+  final DateTime? dueAt;
 
   @HiveField(4)
-  final DateTime? dueAt;
+  final bool isCompleted;
+
+  @HiveField(5)
+  final DateTime createdAt;
 
   Task({
     required this.id,
     required this.title,
-    required this.createdAt,
-    this.isCompleted = false,
+    this.note,
     this.dueAt,
+    this.isCompleted = false,
+    required this.createdAt,
   });
 
-  Task copyWith({String? title, bool? isCompleted, DateTime? dueAt}) {
+  Task copyWith({
+    String? title,
+    String? note,
+    DateTime? dueAt,
+    bool? isCompleted,
+  }) {
     return Task(
       id: id,
       title: title ?? this.title,
-      createdAt: createdAt,
-      isCompleted: isCompleted ?? this.isCompleted,
+      note: note ?? this.note,
       dueAt: dueAt ?? this.dueAt,
+      isCompleted: isCompleted ?? this.isCompleted,
+      createdAt: createdAt,
     );
   }
 }
